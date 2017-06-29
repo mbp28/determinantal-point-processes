@@ -1,36 +1,55 @@
 import numpy as np
 from scipy.linalg import orth
 
-
-def sample_dpp_bin(e_val,e_vec):
+def sample_dpp(vals, vecs, k=0, one_hot=False):
     """
     This function expects 
-
-
+    
+    Arguments: 
+    vals: NumPy 1D Array of Eigenvalues of Kernel Matrix
+    vecs: Numpy 2D Array of Eigenvectors of Kernel Matrix
 
     """
+    n = vecs.shape[0] # number of items in ground set
     
-    my_rand = np.random.rand(len(e_val))
-    ind = (my_rand <= (e_val)/(1+e_val))
-    k = sum(ind)
-    if k == len(e_vec):
-        return np.ones(len(e_vec),dtype=int) # check for full set
-    if k == 0:
-        return np.zeros(len(e_vec),dtype=int) 
-    V = e_vec[:,np.array(ind)]
+    # k-DPP
+    if k:
+        index = sample_k() # sample_k, need to return index
 
-    # sample a set of k items 
-    sample = np.zeros(len(e_vec),dtype=int)
-    for l in range(k-1,-1,-1):
-        p = np.sum(V**2,axis=1)
-        
+    # Sample set size
+    else:
+        index = (np.random.rand(n) < (vals / (vals + 1)))
+        k = np.sum(index)
+    
+    # Check for empty set
+    if not k:
+        return np.zeros(n) if one_hot else np.empty(0)
+    
+    # Check for full set
+    if k == n:
+        return np.ones(n) if one_hot else np.arange(k, dtype=float) 
+    
+    V = vecs[:, index]
+
+    # Sample a set of k items 
+    items = list()
+
+    for i in range(k):
+        p = np.sum(V**2, axis=1)
         p = np.cumsum(p / np.sum(p)) # item cumulative probabilities
-        my_rand = np.random.rand()
-        i = int((my_rand <= p).argmax()) # choose random item
-        sample[i] = 1
+        item = (np.random.rand() <= p).argmax()
+        items.append(item)
         
-        j = (np.abs(V[i,:])> 0.0).argmax() # pick an eigenvector not orthogonal to e_i
-        Vj = V[:,j]
-        V = orth(V - (np.outer(Vj,(V[i,:]/Vj[i]))))
+        # Delete one eigenvector not orthogonal to e_item and find new basis
+        j = (np.abs(V[item, :]) > 0).argmax() 
+        Vj = V[:, j]
+        V = orth(V - (np.outer(Vj,(V[item, :] / Vj[item])))) 
+    
+    items.sort()
+    sample = np.array(items, dtype=float)    
 
-    return sample
+    if one_hot:
+        sample = np.zeros(n)
+        sample[items] = np.ones(k)
+    
+    return sample 
