@@ -14,7 +14,7 @@ def sample_dpp(vals, vecs, k=0, one_hot=False):
     
     # k-DPP
     if k:
-        index = sample_k() # sample_k, need to return index
+        index = sample_k(vals, k) # sample_k, need to return index
 
     # Sample set size
     else:
