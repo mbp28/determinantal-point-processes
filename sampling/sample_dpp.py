@@ -29,6 +29,7 @@ def sample_dpp(vals, vecs, k=0, one_hot=False):
     if k == n:
         return np.ones(n) if one_hot else np.arange(k, dtype=float) 
     
+    # Choose eigenvectors
     V = vecs[:, index]
 
     # Sample a set of k items 
